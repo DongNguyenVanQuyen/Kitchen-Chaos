@@ -1,7 +1,8 @@
 using System;
+using Unity.Netcode;
 using UnityEngine;
 
-public class BaseCounter : MonoBehaviour, IKitchenObjectParent
+public class BaseCounter : NetworkBehaviour, IKitchenObjectParent
 {
     public static void ResetStaticData()
     {
@@ -25,6 +26,8 @@ public class BaseCounter : MonoBehaviour, IKitchenObjectParent
         Debug.Log("BaseCounter Interact");
     }
 
+
+    // IKitchenObjectParent implementation
     public Transform GetKitchenObjectFollowTransform() => _counterTopPoint;
 
     public void SetKitchenObject(KitchenObjects kitchenObject)
@@ -35,6 +38,8 @@ public class BaseCounter : MonoBehaviour, IKitchenObjectParent
             OnAnyObjectPlacedHere?.Invoke(this, EventArgs.Empty);
         }
     }
+
+
     public KitchenObjects GetKitchenObject() => _kitchenObject;
 
     public void ClearKitchenObject()
@@ -43,4 +48,6 @@ public class BaseCounter : MonoBehaviour, IKitchenObjectParent
     }
 
     public bool HasKitchenObject() => _kitchenObject != null;
+
+    public Unity.Netcode.NetworkObject GetNetworkObject() => NetworkObject;
 }

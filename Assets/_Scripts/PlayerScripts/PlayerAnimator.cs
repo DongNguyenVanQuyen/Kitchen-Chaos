@@ -1,38 +1,27 @@
 using UnityEngine;
+using Unity.Netcode;
 
-public class PlayerAnimator : AntBehaviour
+public class PlayerAnimator : NetworkBehaviour
 {
     [SerializeField] private Animator _animator;
     private const string IS_WALKING = "IsWalking";
 
     [SerializeField] private Player _player;
 
-    protected override void LoadComponents() 
+    private void Awake()
     {
-        base.LoadComponents();
-        LoadAnimator();
-        LoadPlayer();
+        if (_animator == null)
+        {
+            _animator = GetComponent<Animator>();
+        }
+        if (_player == null)
+        {
+            _player = GetComponent<Player>();
+        }
     }
-
-    void LoadAnimator()
-    {
-        if (_animator != null) return;
-        _animator = GetComponent<Animator>();
-    }
-
-    void LoadPlayer()
-    {
-        if (_player != null) return;
-        _player = transform.parent.GetComponent<Player>();
-    }
-
-    protected override void LoadAttributes()
-    {
-        base.LoadAttributes();
-    }
-
     private void Update()
     {
+        if (!IsOwner) return;
         _animator.SetBool(IS_WALKING, _player.IsWalking());
     }
 }

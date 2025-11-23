@@ -35,9 +35,8 @@ public class DeliveryResultUI : MonoBehaviour
         messageText.text = message;
         backgroundImage.color = backgroundColor;    
         // Optionally, you can add a timer to hide the UI after a few seconds
-        // Invoke("Hide", 2f);
     }
-    private void Hide()
+    public void Hide()
     {
         gameObject.SetActive(false);
     }

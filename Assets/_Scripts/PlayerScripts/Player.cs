@@ -4,7 +4,14 @@ using Unity.Netcode;
 
 public class Player : NetworkBehaviour, IKitchenObjectParent
 {
-  //  public static Player Instance { get; private set; }
+    public static event EventHandler OnAnyPlayerSpawned;
+    public static event EventHandler OnAnyPlayerPickedSomething;
+    public static void ResetStaticData()
+    {
+        OnAnyPlayerSpawned = null;
+    }
+
+    public static Player LocalInstance { get; private set; }
 
     public event EventHandler OnPickedSomething;
 
@@ -44,6 +51,15 @@ public class Player : NetworkBehaviour, IKitchenObjectParent
     {
         GameInput.Instance.OnInteractAction += GameInput_OnInteractAction;
         GameInput.Instance.OnInteractAlternateAction += GameInput_OnInteractAlternateAction;
+    }
+
+    public override void OnNetworkSpawn()
+    {
+        if (IsOwner)
+        {
+            LocalInstance = this;
+        }
+        OnAnyPlayerSpawned?.Invoke(this, EventArgs.Empty);
     }
 
     private void GameInput_OnInteractAlternateAction(object sender, EventArgs e)
@@ -187,6 +203,9 @@ public class Player : NetworkBehaviour, IKitchenObjectParent
         return _isWalking;
     }
 
+
+
+    // IKitchenObjectParent implementation
     public Transform GetKitchenObjectFollowTransform() => _kitchenObjectHoldPoint;
 
     public void SetKitchenObject(KitchenObjects kitchenObject)
@@ -196,6 +215,7 @@ public class Player : NetworkBehaviour, IKitchenObjectParent
         if (kitchenObject != null)
         {
             OnPickedSomething?.Invoke(this, EventArgs.Empty);
+            OnAnyPlayerPickedSomething?.Invoke(this, EventArgs.Empty);
         }
     }
 
@@ -207,6 +227,11 @@ public class Player : NetworkBehaviour, IKitchenObjectParent
     }
 
     public bool HasKitchenObject() => _kitchenObject != null;
+
+    public NetworkObject GetNetworkObject() => NetworkObject;
+
+
+
 
     private void OnDrawGizmos()
     {
