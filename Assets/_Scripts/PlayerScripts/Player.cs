@@ -1,6 +1,8 @@
 ﻿using System;
 using UnityEngine;
 using Unity.Netcode;
+using NUnit.Framework;
+using System.Collections.Generic;
 
 public class Player : NetworkBehaviour, IKitchenObjectParent
 {
@@ -12,6 +14,7 @@ public class Player : NetworkBehaviour, IKitchenObjectParent
     }
 
     public static Player LocalInstance { get; private set; }
+    [SerializeField] private List<Vector3> spawnPositionList;
 
     public event EventHandler OnPickedSomething;
 
@@ -26,6 +29,8 @@ public class Player : NetworkBehaviour, IKitchenObjectParent
     [SerializeField] private bool _isWalking = false;
     [SerializeField] private float moveSpeed = 7f;
     [SerializeField] private float heightOffset;
+
+    [SerializeField] private PlayerVisual playerVisual;
 
     private Vector3 moveDir;
     private Vector3 lastMoveDir;
@@ -44,22 +49,40 @@ public class Player : NetworkBehaviour, IKitchenObjectParent
     private void Awake()
     {
         LoadCounterLayerMask();
-    //    Player.Instance = this;
+        //    Player.Instance = this;
+
     }
 
     private void Start()
     {
         GameInput.Instance.OnInteractAction += GameInput_OnInteractAction;
         GameInput.Instance.OnInteractAlternateAction += GameInput_OnInteractAlternateAction;
-    }
 
+        PlayerData playerData = KitchentGameMultiplayer.Instance.GetPlayerDataFromClientId(OwnerClientId);
+        playerVisual.SetPlayerColor(KitchentGameMultiplayer.Instance.GetPlayerColor(playerData.colorId));
+        Debug.Log(playerData.colorId);
+    }
     public override void OnNetworkSpawn()
     {
         if (IsOwner)
         {
             LocalInstance = this;
         }
+        transform.position = spawnPositionList[(int)OwnerClientId];
         OnAnyPlayerSpawned?.Invoke(this, EventArgs.Empty);
+
+
+        // Player Disconnect
+        if (IsServer)
+            NetworkManager.Singleton.OnClientConnectedCallback += NetworkManager_OnClientConnectedCallback;
+    }
+
+    private void NetworkManager_OnClientConnectedCallback(ulong clientId)
+    {
+        if (clientId == OwnerClientId && HasKitchenObject())
+        {
+            KitchenObjects.DestroyKitchenObject(GetKitchenObject());
+        }
     }
 
     private void GameInput_OnInteractAlternateAction(object sender, EventArgs e)

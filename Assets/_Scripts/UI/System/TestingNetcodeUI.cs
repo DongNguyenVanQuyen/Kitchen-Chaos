@@ -15,7 +15,7 @@ public class TestingNetcodeUI : MonoBehaviour
             if (networkManager != null)
             {
                 Debug.Log("Starting Host...");
-                networkManager.StartHost();
+                KitchentGameMultiplayer.Instance.StartHost();
                 Hide();
             }
         });
@@ -25,7 +25,7 @@ public class TestingNetcodeUI : MonoBehaviour
             if (networkManager != null)
             {
                 Debug.Log("Starting Client...");
-                networkManager.StartClient();
+                KitchentGameMultiplayer.Instance.StartClient();
                 Hide();
             }
         });

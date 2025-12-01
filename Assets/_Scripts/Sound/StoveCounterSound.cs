@@ -17,8 +17,8 @@ public class StoveCounterSound : MonoBehaviour
     private void Start()
     {
         stoveCounter.OnStateChanged += StoveCounter_OnStateChanged;
-        KitchenGameManager.Instance.OnGamePaused += KitchenGameManager_OnGamePaused;
-        KitchenGameManager.Instance.OnGameUnPaused += KitchenGameManager_OnGameUnPaused;
+        KitchenGameManager.Instance.OnLocalGamePaused += KitchenGameManager_OnGamePaused;
+        KitchenGameManager.Instance.OnLocalGameUnPaused += KitchenGameManager_OnGameUnPaused;
         audioSource.Stop();
 
         stoveCounter.OnProgressChanged += StoveCounter_OnProgressChanged;

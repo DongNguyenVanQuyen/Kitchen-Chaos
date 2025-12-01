@@ -76,6 +76,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
+  spawnPositionList:
+  - {x: -2, y: 0, z: 0}
+  - {x: 2, y: 0, z: 0}
+  - {x: -2, y: 0, z: -2}
+  - {x: 2, y: 0, z: -2}
   _countersLayerMask:
     serializedVersion: 2
     m_Bits: 64
@@ -83,6 +88,7 @@ MonoBehaviour:
   _isWalking: 0
   moveSpeed: 7
   heightOffset: 0
+  playerVisual: {fileID: 8477145413606632076}
   _kitchenObject: {fileID: 0}
   _kitchenObjectHoldPoint: {fileID: 7994846753357694393}
 --- !u!114 &7411079319576156933
@@ -348,3 +354,14 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 3294758251327466532, guid: 1c5dda3c7cd3cf742afcade5419faeab, type: 3}
   m_PrefabInstance: {fileID: 7523038132090206811}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &8477145413606632076 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2144819000791437527, guid: 1c5dda3c7cd3cf742afcade5419faeab, type: 3}
+  m_PrefabInstance: {fileID: 7523038132090206811}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5034574128319649404}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eae064458e02c7f42b55ad6f075909d9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
