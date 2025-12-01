@@ -1,16 +1,33 @@
+using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class CharacterSelect : MonoBehaviour
 {
     [SerializeField] private int playerIndex;
     [SerializeField] private GameObject readyGameObject;
+    [SerializeField] private TextMeshPro playerName;
     [SerializeField] private PlayerVisual playerVisual;
+    [SerializeField] private Button kickBtn;
+
+    private void Awake()
+    {
+        kickBtn.onClick.AddListener(() =>
+        {
+            PlayerData playerData = KitchentGameMultiplayer.Instance.GetPlayerDataFromPlayerIndex(playerIndex);
+            Debug.Log("Kicking player with clientId: " + playerData.clientId);
+            KitchenGameLobby.Instance.KickPlayer(playerData.playerId.ToString());
+            KitchentGameMultiplayer.Instance.KickPlayer(playerData.clientId);
+        });
+    }
 
     private void Start()
     {
         KitchentGameMultiplayer.Instance.OnPlayerDataNetworkListChanged += KitchenGameManager_OnPlayerDataNetworkListChanged;
 
         CharacterSelectReady.Instance.OnReadyChanged += PlayerSelectReady_OnReadyChanged; ;
+
+        kickBtn.gameObject.SetActive(KitchentGameMultiplayer.Instance.IsServer);
 
         UpdatePlayer();
     }
@@ -34,6 +51,8 @@ public class CharacterSelect : MonoBehaviour
             PlayerData playerData = KitchentGameMultiplayer.Instance.GetPlayerDataFromPlayerIndex(playerIndex);
             readyGameObject.SetActive(CharacterSelectReady.Instance.IsPlayerIndexReady(playerData.clientId));
 
+            playerName.text = playerData.name.ToString();
+
             playerVisual.SetPlayerColor(KitchentGameMultiplayer.Instance.GetPlayerColor(playerData.colorId));
         }
         else
@@ -51,4 +70,17 @@ public class CharacterSelect : MonoBehaviour
     {
         gameObject.SetActive(false);
     }
+
+    private void OnDestroy()
+    {
+        if (KitchentGameMultiplayer.Instance != null)
+        {
+            KitchentGameMultiplayer.Instance.OnPlayerDataNetworkListChanged -= KitchenGameManager_OnPlayerDataNetworkListChanged;
+        }
+        if (CharacterSelectReady.Instance != null)
+        {
+            CharacterSelectReady.Instance.OnReadyChanged -= PlayerSelectReady_OnReadyChanged;
+        }
+    }
 }
+

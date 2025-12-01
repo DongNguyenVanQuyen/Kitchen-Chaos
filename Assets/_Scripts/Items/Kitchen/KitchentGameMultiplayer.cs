@@ -1,7 +1,9 @@
 ﻿using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using Unity.Netcode;
+using Unity.Services.Authentication;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -9,8 +11,11 @@ public class KitchentGameMultiplayer : NetworkBehaviour
 {
     public static KitchentGameMultiplayer Instance { get; private set; }
 
+    private const string PLAYER_NAME_MULTIPLAYER_KEY = "PlayerNameMultiplayer";
+
     private NetworkList<PlayerData> playerDataNetworkList;
-    public List<Color> playerColorList;
+    private string playerName;
+    public List<UnityEngine.Color> playerColorList;
 
 
     public const int MAX_PLAYER_AMOUNT = 4;
@@ -27,8 +32,21 @@ public class KitchentGameMultiplayer : NetworkBehaviour
 
         DontDestroyOnLoad(gameObject);
 
+        playerName = PlayerPrefs.GetString(PLAYER_NAME_MULTIPLAYER_KEY,"PlayerName" + UnityEngine.Random.Range(100,1000));
+
         playerDataNetworkList = new NetworkList<PlayerData>();
         playerDataNetworkList.OnListChanged += PlayerDataNetworkList_OnListChanged;
+    }
+
+    public string GetPlayerName()
+    {
+        return playerName;
+    }
+
+    public void SetPlayerName(string playerName)
+    {
+        this.playerName = playerName;
+        PlayerPrefs.SetString(PLAYER_NAME_MULTIPLAYER_KEY, playerName);
     }
 
     private void PlayerDataNetworkList_OnListChanged(NetworkListEvent<PlayerData> changeEvent)
@@ -47,9 +65,28 @@ public class KitchentGameMultiplayer : NetworkBehaviour
                 clientId = clientId,
                 colorId = GetFirstUnusedColorId(),
             });
+            SetPlayerNameServerRpc(playerName);
+            SetPlayerIdServerRpc(AuthenticationService.Instance.PlayerId);
+
+
         };
+        NetworkManager.Singleton.OnClientDisconnectCallback += NetworkManager_Server_OnClientDisconnectedCallback;
 
         NetworkManager.Singleton.StartHost();
+    }
+
+    private void NetworkManager_Server_OnClientDisconnectedCallback(ulong clientId)
+    {
+        for (int i = 0; i < playerDataNetworkList.Count; i++)
+        {
+            PlayerData playerData = playerDataNetworkList[i];
+            if(playerData.clientId == clientId)
+            {
+                // Disconnected client
+                Debug.Log($"Client disconnected: ClientId {playerData.clientId}, ColorId {playerData.colorId}");
+                playerDataNetworkList.RemoveAt(i);
+            }
+        }
     }
 
     private void NetworkManager_ConnectionApprovalCallback(NetworkManager.ConnectionApprovalRequest connectionApprovalRequest, NetworkManager.ConnectionApprovalResponse connectionApprovalResponse)
@@ -79,7 +116,38 @@ public class KitchentGameMultiplayer : NetworkBehaviour
         {
             OnFailedToJoingGame?.Invoke(this, EventArgs.Empty);
         };
+        NetworkManager.Singleton.OnClientConnectedCallback += NetworkManager_Client_OnClientConnectedCallback;
         NetworkManager.Singleton.StartClient();
+
+    }
+
+    private void NetworkManager_Client_OnClientConnectedCallback(ulong obj)
+    {
+        SetPlayerNameServerRpc(playerName);
+        SetPlayerIdServerRpc(AuthenticationService.Instance.PlayerId);
+    }
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+    private void SetPlayerNameServerRpc(string playerName, RpcParams rpcParams = default)
+    {
+        int playerDataIndex = GetPlayerDataIndexFromClientId(rpcParams.Receive.SenderClientId);
+
+        PlayerData playerData = playerDataNetworkList[playerDataIndex];
+
+        playerData.name = playerName;
+
+        playerDataNetworkList[playerDataIndex] = playerData;
+
+    }
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+    private void SetPlayerIdServerRpc(string playerId, RpcParams rpcParams = default)
+    {
+        int playerDataIndex = GetPlayerDataIndexFromClientId(rpcParams.Receive.SenderClientId);
+
+        PlayerData playerData = playerDataNetworkList[playerDataIndex];
+
+        playerData.playerId = playerId;
+
+        playerDataNetworkList[playerDataIndex] = playerData;
 
     }
 
@@ -93,14 +161,22 @@ public class KitchentGameMultiplayer : NetworkBehaviour
     {
         KitchenObjectSO kitchenObjectSO = GetKitchentObjectSOFromIndex(kitchenObjectSOIndex);
 
+        kitchenObjectParentNetworkObjectReference.TryGet(out NetworkObject kitchenObjectParentNetworkObject);
+        IKitchenObjectParent kitchenObjectParent = kitchenObjectParentNetworkObject.GetComponent<IKitchenObjectParent>();
+
+        if (kitchenObjectParent.HasKitchenObject())
+        {
+            // Parent đã có KitchenObject rồi
+            return;
+        }
+
         Transform kitchenObjectTransform = Instantiate(kitchenObjectSO.prefab);
 
         NetworkObject kitchenObjectNetworkObject = kitchenObjectTransform.GetComponent<NetworkObject>();
         kitchenObjectNetworkObject.Spawn(true);
         KitchenObjects kitchenObject = kitchenObjectTransform.GetComponent<KitchenObjects>();
 
-        kitchenObjectParentNetworkObjectReference.TryGet(out NetworkObject kitchenObjectParentNetworkObject);
-        IKitchenObjectParent kitchenObjectParent = kitchenObjectParentNetworkObject.GetComponent<IKitchenObjectParent>();
+      
          kitchenObject.SetKitchenObjectParent(kitchenObjectParent);
     }
 
@@ -126,7 +202,13 @@ public class KitchentGameMultiplayer : NetworkBehaviour
     private void DestroyKitchenObjectServerRpc(NetworkObjectReference networkObjectReference)
     {
         networkObjectReference.TryGet(out NetworkObject kitchenObjectNetworkObject);
+        if (kitchenObjectNetworkObject == null)
+        {
+            // this object has already been destroyed
+            return; 
+        }
         KitchenObjects kitchenObject = kitchenObjectNetworkObject.GetComponent<KitchenObjects>();
+
         ClearKithcenObjectOnParentClientRpc(networkObjectReference);
         kitchenObject.DestroySelf();
     }
@@ -175,7 +257,7 @@ public class KitchentGameMultiplayer : NetworkBehaviour
     {
         return playerDataNetworkList[playerIndex];
     }
-    public Color GetPlayerColor(int colorId)
+    public UnityEngine.Color GetPlayerColor(int colorId)
     {
         return playerColorList[colorId];
     }
@@ -227,4 +309,10 @@ public class KitchentGameMultiplayer : NetworkBehaviour
         }
         return -1;
     }
+
+    public void KickPlayer(ulong clientId)
+    {
+        NetworkManager.Singleton.DisconnectClient(clientId);
+    }
+
 }
